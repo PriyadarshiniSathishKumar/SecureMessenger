@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Secure Messaging System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Hero Section -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <div class="mb-5">
+                <i data-feather="shield" style="width: 64px; height: 64px;" class="text-primary mb-3"></i>
+                <h1 class="display-4 fw-bold mb-3">SecureChat</h1>
+                <p class="lead text-muted mb-4">
+                    Experience secure, end-to-end encrypted messaging with military-grade Fernet encryption. 
+                    Your conversations are protected from prying eyes.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg">
+                        <i data-feather="user-plus" class="me-2"></i>
+                        Get Started
+                    </a>
+                    <a href="{{ url_for('main.login') }}" class="btn btn-outline-secondary btn-lg">
+                        <i data-feather="log-in" class="me-2"></i>
+                        Sign In
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row g-4 mt-5">
+        <div class="col-md-4">
+            <div class="text-center">
+                <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i data-feather="lock" style="width: 32px; height: 32px;" class="text-primary"></i>
+                </div>
+                <h4>End-to-End Encryption</h4>
+                <p class="text-muted">All messages are encrypted using Fernet cryptographic cipher before being stored or transmitted.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="text-center">
+                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i data-feather="users" style="width: 32px; height: 32px;" class="text-success"></i>
+                </div>
+                <h4>Chat Rooms</h4>
+                <p class="text-muted">Create and join secure chat rooms. Organize conversations by topic or team.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="text-center">
+                <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i data-feather="message-circle" style="width: 32px; height: 32px;" class="text-info"></i>
+                </div>
+                <h4>Real-time Messaging</h4>
+                <p class="text-muted">Send and receive messages instantly with a clean, responsive interface.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Info -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-8">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center p-4">
+                    <i data-feather="shield-check" style="width: 48px; height: 48px;" class="text-success mb-3"></i>
+                    <h5 class="card-title">Military-Grade Security</h5>
+                    <p class="card-text text-muted mb-0">
+                        SecureChat uses Fernet symmetric encryption, which guarantees that messages cannot be 
+                        manipulated or read without the key. Your privacy is our top priority.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    {% if current_user.is_authenticated %}
+    <div class="row text-center mt-5">
+        <div class="col-md-4">
+            <h3 class="text-primary">Welcome back!</h3>
+            <p class="text-muted">{{ current_user.username }}</p>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('main.chat') }}" class="btn btn-primary btn-lg">
+                <i data-feather="message-circle" class="me-2"></i>
+                Go to Chat
+            </a>
+        </div>
+        <div class="col-md-4">
+            <h3 class="text-success">Secure</h3>
+            <p class="text-muted">All your messages are encrypted</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

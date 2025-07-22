@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - {{ current_room.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.chat-container {
+    height: calc(100vh - 200px);
+    min-height: 500px;
+}
+
+.messages-container {
+    height: calc(100% - 100px);
+    overflow-y: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    background-color: var(--bs-body-bg);
+}
+
+.message {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    max-width: 70%;
+}
+
+.message-own {
+    margin-left: auto;
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.message-other {
+    background-color: var(--bs-secondary-bg);
+}
+
+.message-sender {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+.room-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.online-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: var(--bs-success);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i data-feather="users" class="me-1"></i>
+                        Rooms
+                    </h6>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#roomModal">
+                        <i data-feather="plus"></i>
+                    </button>
+                </div>
+                <div class="card-body p-2">
+                    <div class="room-list">
+                        {% for room in rooms %}
+                        <a href="{{ url_for('main.chat', room_id=room.id) }}" 
+                           class="list-group-item list-group-item-action {{ 'active' if room.id == current_room.id else '' }} border-0 rounded mb-1">
+                            <div class="d-flex align-items-center">
+                                <i data-feather="hash" class="me-2"></i>
+                                <span class="text-truncate">{{ room.name }}</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Info -->
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <div class="online-indicator"></div>
+                    <strong>{{ current_user.username }}</strong>
+                    <div class="text-muted small">Online</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="col-md-9 col-lg-10">
+            <div class="card chat-container">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i data-feather="hash" class="me-2"></i>
+                            {{ current_room.name }}
+                        </h5>
+                        {% if current_room.description %}
+                        <small class="text-muted">{{ current_room.description }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-secondary me-2">
+                            {{ current_room.get_members()|length }} members
+                        </span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="refreshMessages()">
+                            <i data-feather="refresh-cw" id="refresh-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    <!-- Messages Area -->
+                    <div class="messages-container" id="messagesContainer">
+                        {% if messages %}
+                            {% for message in messages %}
+                            <div class="message {{ 'message-own' if message.is_own else 'message-other' }}">
+                                {% if not message.is_own %}
+                                <div class="message-sender">{{ message.sender }}</div>
+                                {% endif %}
+                                <div class="message-content">{{ message.content }}</div>
+                                <div class="message-time">{{ message.timestamp.strftime('%I:%M %p') }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i data-feather="message-circle" style="width: 48px; height: 48px;" class="mb-3"></i>
+                                <p>No messages yet. Start the conversation!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Message Input -->
+                    <div class="p-3 border-top">
+                        <form method="POST" action="{{ url_for('main.send_message') }}" id="messageForm">
+                            <input type="hidden" name="room_id" value="{{ current_room.id }}">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="message" id="messageInput" 
+                                       placeholder="Type your message..." required maxlength="1000" autocomplete="off">
+                                <button class="btn btn-primary" type="submit">
+                                    <i data-feather="send"></i>
+                                    Send
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Room Management Modal -->
+<div class="modal fade" id="roomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Room Management</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Create Room Tab -->
+                <div class="mb-4">
+                    <h6>
+                        <i data-feather="plus-circle" class="me-1"></i>
+                        Create New Room
+                    </h6>
+                    <form method="POST" action="{{ url_for('main.create_room') }}">
+                        <div class="mb-2">
+                            <input type="text" class="form-control" name="room_name" 
+                                   placeholder="Room name" required minlength="3" maxlength="50">
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control" name="room_description" 
+                                   placeholder="Room description (optional)" maxlength="200">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i data-feather="plus" class="me-1"></i>
+                            Create Room
+                        </button>
+                    </form>
+                </div>
+                
+                <hr>
+                
+                <!-- Join Room Tab -->
+                <div>
+                    <h6>
+                        <i data-feather="log-in" class="me-1"></i>
+                        Join Existing Room
+                    </h6>
+                    <form method="POST" action="{{ url_for('main.join_room') }}">
+                        <div class="mb-2">
+                            <input type="text" class="form-control" name="room_name" 
+                                   placeholder="Room name to join" required>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i data-feather="log-in" class="me-1"></i>
+                            Join Room
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+// Initialize chat functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll to bottom of messages
+    scrollToBottom();
+    
+    // Focus message input
+    document.getElementById('messageInput').focus();
+    
+    // Handle form submission
+    document.getElementById('messageForm').addEventListener('submit', function(e) {
+        const input = document.getElementById('messageInput');
+        if (input.value.trim() === '') {
+            e.preventDefault();
+            return;
+        }
+        
+        // Clear input after form submission preparation
+        setTimeout(() => input.value = '', 10);
+    });
+    
+    // Handle Enter key in message input
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('messageForm').submit();
+        }
+    });
+});
+
+function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    container.scrollTop = container.scrollHeight;
+}
+
+function refreshMessages() {
+    const icon = document.getElementById('refresh-icon');
+    icon.style.animation = 'spin 1s linear infinite';
+    
+    // Reload the page to get fresh messages
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+// Auto-refresh messages every 30 seconds
+setInterval(() => {
+    if (document.visibilityState === 'visible') {
+        // Only refresh if page is visible
+        window.location.reload();
+    }
+}, 30000);
+</script>
+
+<style>
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
